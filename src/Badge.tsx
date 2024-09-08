@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { clamp, getBadgeValue } from './helpers';
+import { clamp, debug, getBadgeValue } from './helpers';
 
 const MIN_SIZE = 15;
 const MAX_SIZE = 45;
@@ -27,7 +27,7 @@ export interface Props extends ViewProps {
   color?: string;
   radius?: number;
   animate?: boolean;
-  value?: number | string | boolean;
+  value?: React.ReactNode;  // 修改 value 的類型
   limit?: number;
   parentRadius?: number;
   position?: `${BadgePositions}`;
@@ -37,11 +37,11 @@ export interface Props extends ViewProps {
 
 const Badge = ({
   size = 20,
-  color = '#ff3b30',
+  color = '#00000000',
   radius,
   animate = true,
   value,
-  limit = 99,
+  limit = 9,
   parentRadius = 0,
   position,
   style,
@@ -70,36 +70,13 @@ const Badge = ({
   }, [animate, animatedValue, toValue]);
 
   const offset = useMemo(() => {
-    // We want to place the badge at the point with polar coordinates (r,45°)
-    // thus we need to find the distance from the containing square top right corner
-    // which can be calculated as x = r - r × sin(45°)
-    // Self offset is how much we’ll shift the badge from the edge point,
-    // its value ranges from height / 4 (square) to height / 2 (circle)
     const edgeOffset = parentRadius * (1 - Math.sin((45 * Math.PI) / 180));
     const selfOffset = (1 + clamp(parentRadius / height, 0, 1)) * (height / 4);
-
     return PixelRatio.roundToNearestPixel(edgeOffset - selfOffset);
   }, [height, parentRadius]);
 
   if (!value) {
     return null;
-  }
-
-  let content = null;
-
-  if (hasContent) {
-    const fontSize = PixelRatio.roundToNearestPixel(height * 0.6);
-    const textStyles = {
-      ...styles.text,
-      fontSize,
-      marginHorizontal: fontSize / 2,
-    };
-
-    content = (
-      <Text style={[textStyles, textStyle]} numberOfLines={1} ellipsizeMode="clip">
-        {getBadgeValue(value, limit)}
-      </Text>
-    );
   }
 
   const rootStyles: Animated.AnimatedProps<ViewStyle[]> = [
@@ -122,11 +99,17 @@ const Badge = ({
     });
   }
 
-  // debug('RENDER <Badge>', value);
+  debug('RENDER <Badge>', value);
 
   return (
     <Animated.View {...props} style={[rootStyles, style]}>
-      {content}
+      {hasContent ? (
+        <Text style={[styles.text, textStyle]} numberOfLines={1} ellipsizeMode="clip">
+          {getBadgeValue(value as string | number, limit)}
+        </Text>
+      ) : (
+        value  // 渲染傳遞的 ReactNode
+      )}
     </Animated.View>
   );
 };
